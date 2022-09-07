@@ -8,22 +8,43 @@ const BN = web3.utils.BN;
 
 class Home extends Component {
 
+
+  static async getInitialProps(props){
+
+   const { wallet } = props.query;
+   
+    return { wallet };
+   
+
+  }
+
   render() {
 
       return (
-          <div className="overflow-hidden">
+<>
+        <div style={{padding: "40px 110px 2px"}} id="container" className="flex flex-wrap gap-5 mt-10 justify-start"></div>
+        <template id="nft_template">
+        <section className="w-48 flex justify-around flex-col bg-blue-100 px-2 py-1 rounded-md">
+          <h1 className="text-black text-center font-semibold"></h1>
     
-
-    
-  </div>
+          <a href="" target="_blank">
+            <img src="" style={{maxWidth:"150px"}} alt="" className="rounded-md" />
+          </a>
+        </section>
+      </template>
+      
+      </>    
       )
   }
 
   constructor(props) {
+
       super(props)
+      
+      
       this.state = {
           account: '',
-          walletAddress: '',
+          walletAddress: this.props.wallet,
           contract: null,
           images: [],
           owners: [],
@@ -110,57 +131,93 @@ await fetch(Tokenurl).then(response => response.json())
   ///console.log(contractAddreses.length);
 });
  
-this.loadBlockchainData();
+this.loadBlockchainData(contractAddreses);
 }
 
 
 
-  async loadBlockchainData() {
+  async loadBlockchainData(addres) {
 
     
-          const address = '0xc54b96b04AA8828b63Cf250408E1084E9F6Ac6c8'//networkData.address
-          const contract = new this.web3.eth.Contract(NFTs, address)
+    for(var j=0;j < addres.length;j++) {
+     
+          const address = addres[j];
+          try {
+            const contract = await new this.web3.eth.Contract(NFTs, addres[j]);
+          
+            this.setState({ contract })
+            
+          } catch (error) {
 
-    /*this.setState({
-      image_contract: [...this.state.image_contract, address]
-    });
-    */
-          this.setState({ contract })
-          const totalNfts = await contract.methods.balanceOf('0x04d9f6D3C33A049d1F0F9a3dda104c0ee7ADed95').call()
+          }
+          
+
+          /*this.setState({
+            image_contract: [...this.state.image_contract, address]
+          });
+          */
+        
+          const totalNfts = 0;
+          try {
+            if(this.state.contract)
+             totalNfts = await this.state.contract.methods.balanceOf(this.state.walletAddress).call()    
+          } catch (error) {
+            
+          }
+
+          
           //console.log(totalNfts);
-    for(var i=0;i < totalNfts;i++){
-      const Nftids = await contract.methods.tokenOfOwnerByIndex('0x04d9f6D3C33A049d1F0F9a3dda104c0ee7ADed95',i).call()
+          if(totalNfts > 0)
+          for(var i=0;i < totalNfts;i++){
+            
+            const Nftids = await this.state.contract.methods.tokenOfOwnerByIndex(this.state.walletAddress,i).call()
 
-      
+            
+            this.setState({
+                        image_id: [...this.state.image_id, Nftids]
+                    });
 
-      this.setState({
-                  image_id: [...this.state.image_id, Nftids]
-              });
+            var Uri = await this.state.contract.methods.tokenURI(Nftids).call();
 
-      var baseUrl = await contract.methods.baseURI().call();
+          await fetch(Uri).then(response => response.json())
+            .then(data => {
 
-    await fetch(baseUrl+Nftids).then(response => response.json())
-      .then(data => {
+            this.setState({
+                        image_url: [...this.state.image_url, data.image]
+                    })
 
-      this.setState({
-                  image_url: [...this.state.image_url, data.image]
-              })
+            this.setState({
+                        image_name: [...this.state.image_name, data.name]
+                    })
 
-      this.setState({
-                  image_name: [...this.state.image_name, data.name]
-              })
+        document.getElementById("container").append(this.createTokenElement(Nftids, data.name, data.image));
 
-      console.log('Ids:'+Nftids);
-      console.log('Name:'+data.name);
-      console.log('URL:'+data.image);
-    })
+            console.log('NFT Contract:'+addres[j]);
+            console.log('Ids:'+Nftids);
+            console.log('Name:'+data.name);
+            console.log('URL:'+data.image);
+          })
 
-      
+            
 
-    }
+          }
+          
+      }
     
       }
 
+     createTokenElement(token_id,  name, image_preview_url) {
+        const newElement = document.getElementById("nft_template").content.cloneNode(true)
+ 
+        newElement.querySelector("section").id = `${token_id}`
+        newElement.querySelector("h1").innerText = name
+        newElement.querySelector("a").href = image_preview_url
+        newElement.querySelector("img").src = image_preview_url
+        newElement.querySelector("img").alt = name
+      
+        return newElement
+      }
+      
 
 
 }
