@@ -1,2 +1,2 @@
-cd client/src
-node server.js
+#cd client/src
+#node server.js
